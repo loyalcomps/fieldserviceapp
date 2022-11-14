@@ -37,7 +37,7 @@ class getCustomer(http.Controller):
     @http.route('/get_customer', auth='user',type="json",methods=['GET','POST'])
     def getCustomer(self, **kw):
         try:
-            customer_list = request.env['res.partner'].search_read([('customer_rank','>',0)],['name','email','phone','mobile','image_256'])
+            customer_list = request.env['res.partner'].search_read([('customer_rank','>',0)],['name','email','phone','mobile','image_256','property_product_pricelist','vat','company_type','category_id','parent_id'])
             return {"status":200,"message":"Success","data":customer_list}
         except Exception as e:
             return {"status":400,"message":"Failed","error":str(e)}
@@ -463,4 +463,21 @@ class getCustomer(http.Controller):
             return {"status": 200, "message": "Success", "data": "Reset to Draft"}
         except Exception as e:
             return {"status": 400, "message": "Failed", "error": str(e)}
+
+    @http.route("/get_country", type="json", auth="user", methods=["GET"])
+    def get_country_values(self, **kw):
+        try:
+            states = request.env['res.country'].search_read([], ['name'])
+            return {"status": 200, "message": "Success", "data": states}
+        except Exception as e:
+            return {"status": 400, "message": "Failed", "error": str(e)}
+
+    @http.route("/get_company", type="json", auth="user", methods=["GET"])
+    def get_company_values(self, **kw):
+        try:
+            states = request.env['res.company'].search_read([], ['name'])
+            return {"status": 200, "message": "Success", "data": states}
+        except Exception as e:
+            return {"status": 400, "message": "Failed", "error": str(e)}
+
 
