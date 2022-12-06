@@ -18,6 +18,7 @@ class CustomSession(Session):  # Inherit in your custom class
         users = request.env['res.users'].browse(uid)
         # res['user_image'] =  base64.encodestring(users.image_1920)
         res['user_image'] =  users.image_1920
+        # res['user_image'] =  users.image_256
         # res.write({'user_image': base64.encodestring(users.image_256)})
         return res
 
@@ -34,13 +35,54 @@ class getCustomer(http.Controller):
             return {"status":200,"message":"Success","data":category_ids}
         except Exception as e:
             return {"status":400,"message":"Failed","error":str(e)}
+
+    # @http.route('/get_customer', auth='user',type="json",methods=['GET','POST'])
+    # def getCustomer(self, **kw):
+    #     try:
+    #         customer_list = request.env['res.partner'].search_read([('customer_rank','>',0)],['name','email','phone','mobile','image_256',
+    #         'property_product_pricelist','vat','company_type','category_id','parent_id'])
+    #         return {"status":200,"message":"Success","data":customer_list}
+    #     except Exception as e:
+    #         return {"status":400,"message":"Failed","error":str(e)} \
+    #
+
     @http.route('/get_customer', auth='user',type="json",methods=['GET','POST'])
     def getCustomer(self, **kw):
         try:
-            customer_list = request.env['res.partner'].search_read([('customer_rank','>',0)],['name','email','phone','mobile','image_256','property_product_pricelist','vat','company_type','category_id','parent_id'])
-            return {"status":200,"message":"Success","data":customer_list}
+            customers = request.env['res.partner'].search([('customer_rank','>',0)])
+            vals = []
+            for customer in customers:
+                val = {'name': customer.name,
+                       'email': customer.email,
+                       'phone': customer.phone,
+                       'mobile': customer.mobile,
+                       'image_256': customer.image_256,
+                       'property_product_pricelist': customer.property_product_pricelist.name,
+                       'vat': customer.vat,
+                       'company_type': customer.company_type,
+                       # 'parent_id': customer.parent_id,
+                       # 'category_id':  [(6, 0, customer.category_id.name)],
+
+
+                       }
+                tags = []
+                for category in customer.category_id:
+                    tags.append(
+                        {'id': category.id,
+                        'name': category.name})
+                val['category_id'] = tags
+                vals.append(val)
+
+                parent_name = []
+                for partner in customer.parent_id:
+                    parent_name.append(
+                        {'id': partner.id,
+                         'name': partner.name})
+                val['parent_id'] = parent_name
+                vals.append(val)
+            return {"status": 200, "message": "Success", "data": vals}
         except Exception as e:
-            return {"status":400,"message":"Failed","error":str(e)}
+            return {"status": 400, "message": "Failed", "error": str(e)}
 
     @http.route('/create_customer', auth='user',type="json",methods=['POST'])
     def createCustomer(self, **kw):
@@ -114,7 +156,7 @@ class getCustomer(http.Controller):
     def getProducts(self, **kw):
         try:
             products = request.env['product.product'].search_read([('sale_ok','=',True)],
-            ['name','lst_price','uom_id','taxes_id','categ_id','qty_available','image_variant_256'])
+            ['name','lst_price','uom_id','taxes_id','categ_id','qty_available','image_variant_256','detailed_type','barcode','invoice_policy'])
             print('products',products)
             return {"status":200,"message":"Success","data":products}
         except Exception as e:
@@ -480,4 +522,38 @@ class getCustomer(http.Controller):
         except Exception as e:
             return {"status": 400, "message": "Failed", "error": str(e)}
 
+    @http.route("/get_sale_delivery_orders", type="json", auth="user", methods=["GET"])
+    def get_sale_delivery_orders(self, **kw):
+        try:
+            if not kw.get('sale_order_id'):
+                return {"status": 400, "message": "Failed", "error": "Value error: The sale Order id is required."}
 
+            delivery_ids = request.env['stock.picking'].search(
+                [('sale_id', '=', kw.get('sale_order_id')), ('picking_type_code', '=', 'outgoing')])
+            vals = []
+            for rec in delivery_ids:
+                val = {'name': rec.name,
+                       'origin': rec.origin,
+                       'scheduled_date': rec.scheduled_date,
+                       'date_deadline': rec.date_deadline,
+                       'partner_id': rec.partner_id.name,
+                       'state': dict(rec._fields['state'].selection).get(rec.state),
+                       'state_value': rec.state,
+                       'delivery_order_id': rec.id,
+                       }
+                lines = []
+                for line in rec.move_ids_without_package:
+                    l_val = {
+                        'stock_move_id': line.id,
+                        'product': line.product_id.display_name,
+                        'product_uom_qty': line.product_uom_qty,
+                        'forecast_availability': line.forecast_availability,
+                        'quantity_done': line.quantity_done,
+                        'product_uom': line.product_uom.name
+                    }
+                    lines.append(l_val)
+                val['lines'] = lines
+                vals.append(val)
+            return {"status": 200, "message": "Success", "data": vals}
+        except Exception as e:
+            return {"status": 400, "message": "Failed", "error": str(e)}
