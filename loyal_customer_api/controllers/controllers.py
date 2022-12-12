@@ -50,6 +50,7 @@ class getCustomer(http.Controller):
     def getCustomer(self, **kw):
         try:
             customers = request.env['res.partner'].search([('customer_rank','>',0)])
+            customers = request.env['res.partner'].search([('customer_rank','>',0)])
             vals = []
             for customer in customers:
                 val = {'name': customer.name,
@@ -156,7 +157,7 @@ class getCustomer(http.Controller):
     def getProducts(self, **kw):
         try:
             products = request.env['product.product'].search_read([('sale_ok','=',True)],
-            ['name','lst_price','uom_id','taxes_id','categ_id','qty_available','image_variant_256','detailed_type','barcode','invoice_policy'])
+            ['name','lst_price','uom_id','taxes_id','categ_id','qty_available','image_variant_256','type','barcode','invoice_policy'])
             print('products',products)
             return {"status":200,"message":"Success","data":products}
         except Exception as e:
@@ -375,6 +376,13 @@ class getCustomer(http.Controller):
                     'invoice_date':kw.get('invoice_date'),
                     'partner_id':kw.get('partner_id'),
                     'move_type':'out_invoice',
+                    'invoice_payment_term_id':kw.get('invoice_payment_term_id'),
+                    'payment_reference':kw.get('payment_reference'),
+                    'invoice_user_id': kw.get('invoice_user_id'),
+                    'invoice_date_due': kw.get('invoice_date_due'),
+                    'amount_total': kw.get('amount_total'),
+                    'amount_tax': kw.get('amount_tax'),
+                    'amount_untaxed': kw.get('amount_untaxed'),
                     }
             lines = []
             for line in kw.get('invoice_lines'):
@@ -402,7 +410,10 @@ class getCustomer(http.Controller):
                     'invoice_date':kw.get('invoice_date'),
                     'partner_id':kw.get('partner_id'),
                     'move_type':'out_invoice',
-                    'invoice_payment_term_id':kw.get('invoice_payment_term_id')
+                    'invoice_payment_term_id':kw.get('invoice_payment_term_id'),
+                    'payment_reference':kw.get('payment_reference'),
+                    'invoice_user_id': kw.get('invoice_user_id'),
+                    'invoice_date_due': kw.get('invoice_date_due')
                     }
             lines = []
             for line in kw.get('invoice_lines'):
